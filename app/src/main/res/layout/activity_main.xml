@@ -24,14 +24,17 @@
         <Switch
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Screen brightness or system brightness?"/>
+            android:text="Screen brightness or system brightness?"
+            android:id="@+id/screenSwitch"/>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:textColor="@android:color/holo_red_dark"
             android:textStyle="italic"
-            android:text="Changing the system brightness is permanent!"/>
+            android:id="@+id/warningText"
+            android:text="Changing the system brightness is permanent!"
+            android:visibility="gone"/>
 
 
     </LinearLayout>
