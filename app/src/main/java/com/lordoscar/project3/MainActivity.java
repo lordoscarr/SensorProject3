@@ -104,13 +104,46 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
                 startActivity(intent);
             }else{
-                Settings.System.putInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, 20);
+                Settings.System.putInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, calcSystemBrightness(brightness));
             }
         }else {
             WindowManager.LayoutParams layoutParams = window.getAttributes();
-            layoutParams.screenBrightness = brightness;
+            layoutParams.screenBrightness = calcScreenBrightness(brightness);
             window.setAttributes(layoutParams);
         }
+    }
+
+    private int calcSystemBrightness(float brightness){
+        Log.d("Brightness", "changing system brightness");
+        switch (selectedPreset){
+            case "Very low":
+                return 5;
+            case "Low":
+                return 50;
+            case "Normal":
+                return 100;
+            case "Bright":
+                return 175;
+            case "Very bright":
+                return 255;
+        }
+        return 100;
+    }
+
+    private float calcScreenBrightness(float brightness){
+        switch (selectedPreset){
+            case "Very low":
+                return brightness * 0.05F;
+            case "Low":
+                return brightness * 0.25F;
+            case "Normal":
+                return brightness * 0.50F;
+            case "Bright":
+                return brightness * 0.75F;
+            case "Very bright":
+                return brightness * 1F;
+        }
+        return brightness;
     }
 
     @Override
