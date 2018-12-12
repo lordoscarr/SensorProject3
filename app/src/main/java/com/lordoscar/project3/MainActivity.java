@@ -6,11 +6,14 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Camera;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.hardware.camera2.CameraManager;
 import android.provider.Settings;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -21,20 +24,27 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.Spinner;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.security.Policy;
+
 public class MainActivity extends AppCompatActivity implements SensorEventListener {
 
     String[] presets = new String[] { "Very low", "Low", "Normal", "Bright", "Very bright"};
     private SensorManager sensorManager;
+    private Sensor lightSensor;
     private Sensor proximitySensor;
     private ContentResolver contentResolver;
     private Window window;
     private boolean isChecked = false;
+    private boolean isFlashOn = false;
+    private Button morseButton;
+
     TextView warningText;
     String selectedPreset = "Normal";
 
@@ -49,16 +59,33 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             ActivityCompat.requestPermissions(this, new String[]{android. Manifest.permission.WRITE_SETTINGS}, 0);
         }
 
+        ActivityCompat.requestPermissions(MainActivity.this,
+                new String[] {Manifest.permission.CAMERA}, 1888);
+
         sensorManager = (SensorManager) this.getSystemService(Context.SENSOR_SERVICE);
+        if(sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT) != null){
+            lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        }else {
+            Toast.makeText(this, "No light sensor found.", Toast.LENGTH_SHORT).show();
+        }
         if(sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY) != null){
             proximitySensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
         }else {
-            Toast.makeText(this, "No proximity sensor found.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "No light sensor found.", Toast.LENGTH_SHORT).show();
         }
 
         contentResolver = getContentResolver();
         window = getWindow();
-        }
+
+        morseButton = findViewById(R.id.morseButton);
+        morseButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, MorseActivity.class);
+                startActivity(intent);
+            }
+        });
+    }
 
     private void initializeComponents(){
         Switch screenSwitch = findViewById(R.id.screenSwitch);
@@ -75,26 +102,76 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     protected void onPause() {
         super.onPause();
         sensorManager.unregisterListener(this);
-        Toast.makeText(this, "Unregistered listener.", Toast.LENGTH_SHORT).show();
+        turnOffFlash();
+        Toast.makeText(this, "Unregistered listeners.", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
         sensorManager.registerListener(this, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
-        Toast.makeText(this, "Registered listener.", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "Registered listeners.", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
 
-        float light = event.values[0];
+        if(event.sensor.getType() == Sensor.TYPE_LIGHT){
+            float light = event.values[0];
 
-        Log.d("Sensor changed", "New value: " + light);
+            Log.d("Light changed", "New value: " + light);
 
+            if (light>=100)
+                light = 100;
+            if (light<=0)
+                light = 0;
 
-        if(light>0 && light<100){
-            changeScreenBrightness(1/light);
+            float brightness = light / 100;
+
+            changeScreenBrightness(brightness);
+        }else if (event.sensor.getType() == Sensor.TYPE_PROXIMITY){
+            float distance = event.values[0];
+
+            Log.d("Proximity changed", "New value: " + distance);
+
+            if (distance < event.sensor.getMaximumRange()){
+                //Turn on flash
+                turnOnFlash();
+            }else{
+                //Turn off flash?
+                turnOffFlash();
+            }
+        }
+    }
+
+    private void turnOnFlash(){
+        if(isFlashOn)
+            return;
+
+        CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+
+        try {
+            String cameraId = cameraManager.getCameraIdList()[0];
+            cameraManager.setTorchMode(cameraId, true);
+            isFlashOn = true;
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void turnOffFlash(){
+        if (!isFlashOn)
+            return;
+
+        CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
+
+        try {
+            String cameraId = cameraManager.getCameraIdList()[0];
+            cameraManager.setTorchMode(cameraId, false);
+            isFlashOn = false;
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
     }
 
@@ -104,28 +181,30 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
                 Intent intent = new Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS);
                 startActivity(intent);
             }else{
-                Settings.System.putInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, calcSystemBrightness(brightness));
+                int systemBrightness = calcSystemBrightness(brightness);
+                //Log.d("System brightness", systemBrightness + "");
+                Settings.System.putInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, systemBrightness);
             }
-        }else {
-            WindowManager.LayoutParams layoutParams = window.getAttributes();
-            layoutParams.screenBrightness = calcScreenBrightness(brightness);
-            window.setAttributes(layoutParams);
         }
+        float screenBrightness = calcScreenBrightness(brightness);
+        //Log.d("Screen brightness", screenBrightness + "");
+        WindowManager.LayoutParams layoutParams = window.getAttributes();
+        layoutParams.screenBrightness = screenBrightness;
+        window.setAttributes(layoutParams);
     }
 
     private int calcSystemBrightness(float brightness){
-        Log.d("Brightness", "changing system brightness");
         switch (selectedPreset){
             case "Very low":
-                return 5;
+                return (int) (255 * 0.05 + 25.5 * brightness);
             case "Low":
-                return 50;
+                return (int) (255 * 0.3 + 25.5 * brightness);
             case "Normal":
-                return 100;
+                return (int) (255 * 0.5 + 25.5 * brightness);
             case "Bright":
-                return 175;
+                return (int) (255 * 0.7 + 25.5 * brightness);
             case "Very bright":
-                return 255;
+                return (int) (255 * 0.9 + 25.5 * brightness);
         }
         return 100;
     }
@@ -133,17 +212,17 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     private float calcScreenBrightness(float brightness){
         switch (selectedPreset){
             case "Very low":
-                return brightness * 0.05F;
+                return 0.05F + 0.1F * brightness;
             case "Low":
-                return brightness * 0.25F;
+                return 0.3F + 0.1F * brightness;
             case "Normal":
-                return brightness * 0.50F;
+                return 0.5F + 0.1F * brightness;
             case "Bright":
-                return brightness * 0.75F;
+                return 0.7F + 0.1F * brightness;
             case "Very bright":
-                return brightness * 1F;
+                return 0.9F + 0.1F * brightness;
         }
-        return brightness;
+        return 100;
     }
 
     @Override

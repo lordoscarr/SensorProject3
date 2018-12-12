@@ -4,44 +4,43 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    tools:context=".MainActivity">
+    tools:context=".MorseActivity">
 
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical" android:layout_margin="10dp">
+        android:layout_height="wrap_content" android:layout_margin="10dp" android:orientation="vertical">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="PICK A PRESET"/>
-
-        <Spinner
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:id="@+id/presetSpinner" />
-
-        <Switch
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Screen brightness or system brightness?"
-            android:id="@+id/screenSwitch"/>
+            android:text="INCOMING MESSAGE"/>
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@android:color/holo_red_dark"
-            android:textStyle="italic"
-            android:id="@+id/warningText"
-            android:text="Changing the system brightness is permanent!"
-            android:visibility="gone"/>
+            android:text="S O S"
+            android:textColor="@android:color/black"
+            android:textSize="32dp"
+            android:id="@+id/resultText"/>
 
         <Button
             android:layout_width="match_parent"
-            android:layout_height="wrap_content" android:layout_marginTop="50dp"
-            android:text="MORSE"
-            android:id="@+id/morseButton"/>
+            android:layout_height="wrap_content"
+            android:text="CLEAR INCOMING MESSAGE"
+            android:id="@+id/clearButton"/>
 
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SEND SOS"
+            android:id="@+id/sosButton"/>
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="SEND OK"
+            android:id="@+id/okButton"/>
 
     </LinearLayout>
+
 </FrameLayout>
