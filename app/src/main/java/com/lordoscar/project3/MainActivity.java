@@ -106,11 +106,10 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
             }else{
                 Settings.System.putInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS, calcSystemBrightness(brightness));
             }
-        }else {
-            WindowManager.LayoutParams layoutParams = window.getAttributes();
-            layoutParams.screenBrightness = calcScreenBrightness(brightness);
-            window.setAttributes(layoutParams);
         }
+        WindowManager.LayoutParams layoutParams = window.getAttributes();
+        layoutParams.screenBrightness = calcScreenBrightness(brightness);
+        window.setAttributes(layoutParams);
     }
 
     private int calcSystemBrightness(float brightness){
