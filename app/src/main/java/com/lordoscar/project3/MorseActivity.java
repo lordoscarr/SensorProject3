@@ -1,12 +1,15 @@
 package com.lordoscar.project3;
 
 import android.content.Context;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
 import android.hardware.camera2.CameraManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MorseActivity extends AppCompatActivity {
 
@@ -32,9 +35,17 @@ public class MorseActivity extends AppCompatActivity {
 
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
 
+        SensorManager sensorManager = (SensorManager) this.getSystemService(Context.SENSOR_SERVICE);
+        Sensor lightSensor;
+        if(sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT) != null){
+            lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        }else {
+            Toast.makeText(this, "No light sensor found.", Toast.LENGTH_SHORT).show();
+        }
+
         try {
             String cameraId = cameraManager.getCameraIdList()[0];
-            morseTranslator = new MorseTranslator(cameraManager, cameraId);
+            morseTranslator = new MorseTranslator(cameraManager, cameraId, sensorManager, lightSensor );
         } catch (Exception ex) {
             ex.printStackTrace();
         }
@@ -59,5 +70,20 @@ public class MorseActivity extends AppCompatActivity {
                 }
             }
         }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        sensorManager.unregisterListener(this);
+        Toast.makeText(this, "Unregistered listeners.", Toast.LENGTH_SHORT).show();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
+        Toast.makeText(this, "Registered listeners.", Toast.LENGTH_SHORT).show();
     }
 }

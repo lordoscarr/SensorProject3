@@ -1,5 +1,9 @@
 package com.lordoscar.project3;
 
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.hardware.camera2.CameraManager;
 import android.util.Log;
 
@@ -11,8 +15,10 @@ public class MorseTranslator {
 
     private CameraManager cameraManager;
     private String cameraId;
+    private SensorManager sensorManager;
+    private Sensor lightSensor;
 
-    public MorseTranslator(CameraManager cameraManager, String cameraId){
+    public MorseTranslator(CameraManager cameraManager, String cameraId, SensorManager sensorManager, Sensor lightSensor){
         this.cameraManager = cameraManager;
         this.cameraId = cameraId;
 
@@ -182,7 +188,7 @@ public class MorseTranslator {
 //        }
     }
 
-    private void dot(){
+    private void dot() throws Exception{
         Log.d("MORSE", "dot");
         try {
             cameraManager.setTorchMode(cameraId, true);
@@ -193,18 +199,28 @@ public class MorseTranslator {
         }
     }
 
-    private void dash(){
+    private void dash() throws Exception{
         Log.d("MORSE", "dash");
-        try {
-            cameraManager.setTorchMode(cameraId, true);
-            Timer timer = new Timer();
-            cameraManager.setTorchMode(cameraId, false);
-        }catch (Exception ex){
-            ex.printStackTrace();
-        }
+        cameraManager.setTorchMode(cameraId, true);
+        sleep(1500);
+        cameraManager.setTorchMode(cameraId, false);
     }
+
+
 
     private static void sleep(long milliseconds) throws Exception{
         TimeUnit.MILLISECONDS.sleep(milliseconds);
+    }
+
+    class MorseListener implements SensorEventListener{
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+            Log.d("Accuracy changed", "" + accuracy);
+        }
     }
 }
