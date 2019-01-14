@@ -17,6 +17,7 @@ public class MorseActivity extends AppCompatActivity {
     private Button clearButton;
     private Button sosButton;
     private Button okButton;
+    private Button readButton;
     private MorseTranslator morseTranslator;
 
     @Override
@@ -27,16 +28,18 @@ public class MorseActivity extends AppCompatActivity {
         clearButton = findViewById(R.id.clearButton);
         sosButton = findViewById(R.id.sosButton);
         okButton = findViewById(R.id.okButton);
+        readButton = findViewById(R.id.readButton);
 
         ButtonListener bl = new ButtonListener();
         clearButton.setOnClickListener(bl);
         sosButton.setOnClickListener(bl);
         okButton.setOnClickListener(bl);
+        readButton.setOnClickListener(bl);
 
         CameraManager cameraManager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
 
         SensorManager sensorManager = (SensorManager) this.getSystemService(Context.SENSOR_SERVICE);
-        Sensor lightSensor;
+        Sensor lightSensor = null;
         if(sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT) != null){
             lightSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
         }else {
@@ -51,10 +54,13 @@ public class MorseActivity extends AppCompatActivity {
         }
     }
 
+    boolean reading = false;
+
     class ButtonListener implements View.OnClickListener{
         @Override
         public void onClick(View v) {
             if(v.equals(clearButton)){
+                morseTranslator.clear();
                 resultText.setText("");
             }else if (v.equals(sosButton)){
                 try{
@@ -68,6 +74,19 @@ public class MorseActivity extends AppCompatActivity {
                 }catch (Exception ex){
                     ex.printStackTrace();
                 }
+            }else if(v.equals(readButton)){
+                if(reading){
+                    readButton.setText("READ MORSE");
+                    morseTranslator.unregisterListener();
+                    resultText.setText(morseTranslator.getTranslation());
+                    reading = false;
+                }else {
+                    readButton.setText("FINISH READING");
+                    morseTranslator.clear();
+                    resultText.setText("");
+                    morseTranslator.registerListener();
+                    reading = true;
+                }
             }
         }
     }
@@ -75,15 +94,15 @@ public class MorseActivity extends AppCompatActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        sensorManager.unregisterListener(this);
+        morseTranslator.unregisterListener();
+        readButton.setText("READ MORSE");
+        reading = false;
         Toast.makeText(this, "Unregistered listeners.", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
-        sensorManager.registerListener(this, proximitySensor, SensorManager.SENSOR_DELAY_NORMAL);
         Toast.makeText(this, "Registered listeners.", Toast.LENGTH_SHORT).show();
     }
 }

@@ -23,6 +23,13 @@
             android:textSize="32dp"
             android:id="@+id/resultText"/>
 
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="READ MORSE"
+            android:id="@+id/readButton"/>
+
         <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

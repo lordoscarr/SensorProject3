@@ -11,7 +11,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.TimeUnit;
 
-public class MorseTranslator {
+public class MorseTranslator implements SensorEventListener {
 
     private CameraManager cameraManager;
     private String cameraId;
@@ -21,7 +21,8 @@ public class MorseTranslator {
     public MorseTranslator(CameraManager cameraManager, String cameraId, SensorManager sensorManager, Sensor lightSensor){
         this.cameraManager = cameraManager;
         this.cameraId = cameraId;
-
+        this.sensorManager = sensorManager;
+        this.lightSensor = lightSensor;
     }
 
     public void send(String message) throws Exception{
@@ -206,21 +207,113 @@ public class MorseTranslator {
         cameraManager.setTorchMode(cameraId, false);
     }
 
-
-
     private static void sleep(long milliseconds) throws Exception{
         TimeUnit.MILLISECONDS.sleep(milliseconds);
     }
 
-    class MorseListener implements SensorEventListener{
-        @Override
-        public void onSensorChanged(SensorEvent event) {
+    public void registerListener(){
+        sensorManager.registerListener(this, lightSensor, SensorManager.SENSOR_DELAY_NORMAL);
+    }
 
+    public void unregisterListener(){
+        sensorManager.unregisterListener(this);
+    }
+
+    long lightOn = 0;
+    long darkOn = 0;
+    StringBuilder morseString = new StringBuilder();
+    int charBegin = 0;
+    boolean isLightOn = false;
+    boolean islightSwitched = false;
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        float light = event.values[0];
+
+        Log.d("Light changed", "New value: " + light);
+
+        if(light < 600){
+            if(isLightOn){
+                islightSwitched = true;
+                isLightOn = false;
+            }else {
+                islightSwitched = false;
+            }
+        }else {
+            if(!isLightOn){
+                islightSwitched = true;
+                isLightOn = true;
+            }else {
+                islightSwitched = false;
+            }
         }
 
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-            Log.d("Accuracy changed", "" + accuracy);
+        if(islightSwitched == false){
+            return;
         }
+
+        if(!isLightOn){
+            Log.d("Light", "TURNED OFF");
+            //Ingen lampa igång
+            darkOn = System.currentTimeMillis();
+            long time = darkOn - lightOn;
+
+            if(time < 1400){
+                //Dot
+                morseString.append(".");
+            }else if(time >= 1400){
+                //Dash
+                morseString.append("-");
+            }
+
+        }else{
+            Log.d("Light", "TURNED ON");
+            //Lampa igång
+            lightOn = System.currentTimeMillis();
+            long time = lightOn - darkOn;
+
+            if(time < 1400){
+                //Mellanrum mellan kod i bokstav
+            }else if (time >= 1400 && time <= 3400){
+                //Ny bokstav
+                morseString.append("|");
+            }else if(time >= 3400){
+                //Mellanslag
+                morseString.append("| |");
+            }
+        }
+        Log.d("CURRENT MORSE", morseString.toString());
+    }
+
+    public String getTranslation(){
+
+        String[] letters = morseString.toString().split("\\|");
+
+        StringBuilder translated = new StringBuilder();
+
+        for (String letter : letters){
+            Log.d("LETTER", letter);
+            if(letter.equals("..."))
+                translated.append("S");
+            if(letter.equals("---"))
+                translated.append("O");
+            if(letter.equals("-.-"))
+                translated.append("K");
+        }
+        return translated.toString();
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        Log.d("Accuracy changed", "" + accuracy);
+    }
+
+    public void clear(){
+        charBegin = 0;
+        morseString = new StringBuilder();
+        isLightOn = false;
+        islightSwitched = false;
+        lightOn = 0;
+        darkOn = 0;
     }
 }
